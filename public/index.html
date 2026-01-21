@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java代码缺陷检测工具 | AI代码审查</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1><i class="fas fa-bug"></i> Java代码缺陷检测工具</h1>
+                <p class="subtitle">基于DeepSeek AI的智能代码审查系统</p>
+                <div class="badges">
+                    <span class="badge">静态分析</span>
+                    <span class="badge">安全漏洞</span>
+                    <span class="badge">性能优化</span>
+                    <span class="badge">代码规范</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- 左侧：代码输入区 -->
+            <div class="left-panel">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-code"></i> 输入Java代码</h3>
+                        <div class="card-actions">
+                            <button id="sampleBtn" class="btn-outline">
+                                <i class="fas fa-file-code"></i> 加载示例
+                            </button>
+                            <button id="clearBtn" class="btn-outline">
+                                <i class="fas fa-trash"></i> 清空
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="code-input-container">
+                        <div class="input-modes">
+                            <button class="mode-btn active" data-mode="text">
+                                <i class="fas fa-keyboard"></i> 文本输入
+                            </button>
+                            <button class="mode-btn" data-mode="file">
+                                <i class="fas fa-file-upload"></i> 文件上传
+                            </button>
+                        </div>
+
+                        <!-- 文本输入模式 -->
+                        <div id="textInput" class="input-mode active">
+                            <div class="editor-header">
+                                <span class="language-tag">Java</span>
+                                <div class="editor-info">
+                                    <span id="charCount">0 字符</span>
+                                    <span id="lineCount">0 行</span>
+                                </div>
+                            </div>
+                            <textarea id="codeInput"
+                                placeholder="在此粘贴或输入您的Java代码...&#10;&#10;支持的功能：&#10;• 代码缺陷检测&#10;• 安全漏洞扫描&#10;• 性能问题分析&#10;• 代码规范检查"
+                                spellcheck="false"></textarea>
+                        </div>
+
+                        <!-- 文件上传模式 -->
+                        <div id="fileInput" class="input-mode">
+                            <div class="upload-area" id="dropArea">
+                                <i class="fas fa-cloud-upload-alt fa-3x"></i>
+                                <h4>拖放Java文件到这里</h4>
+                                <p>支持 .java, .txt 文件</p>
+                                <p class="file-size">最大文件大小: 1MB</p>
+                                <input type="file" id="fileUpload" accept=".java,.txt" hidden>
+                                <label for="fileUpload" class="btn-primary">
+                                    <i class="fas fa-folder-open"></i> 选择文件
+                                </label>
+                                <div id="fileInfo" class="file-info hidden">
+                                    <i class="fas fa-file-code"></i>
+                                    <div>
+                                        <span id="fileName"></span>
+                                        <span id="fileSize"></span>
+                                    </div>
+                                    <button id="removeFile" class="btn-icon">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="analysis-controls">
+                            <div class="analysis-options">
+                                <h4>检测选项：</h4>
+                                <div class="options-grid">
+                                    <label class="checkbox">
+                                        <input type="checkbox" id="optSecurity" checked>
+                                        <span class="checkmark"></span>
+                                        <span>安全漏洞</span>
+                                    </label>
+                                    <label class="checkbox">
+                                        <input type="checkbox" id="optPerformance" checked>
+                                        <span class="checkmark"></span>
+                                        <span>性能问题</span>
+                                    </label>
+                                    <label class="checkbox">
+                                        <input type="checkbox" id="optStyle" checked>
+                                        <span class="checkmark"></span>
+                                        <span>代码规范</span>
+                                    </label>
+                                    <label class="checkbox">
+                                        <input type="checkbox" id="optBugs" checked>
+                                        <span class="checkmark"></span>
+                                        <span>潜在Bug</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button id="analyzeBtn" class="btn-analyze">
+                                <i class="fas fa-search"></i> 开始分析
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 历史记录 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-history"></i> 分析历史</h3>
+                        <button id="clearHistory" class="btn-text">
+                            清空历史
+                        </button>
+                    </div>
+                    <div class="history-list" id="historyList">
+                        <!-- 历史记录将动态加载 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：分析结果区 -->
+            <div class="right-panel">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-bar"></i> 分析结果</h3>
+                        <div class="result-controls">
+                            <button id="exportBtn" class="btn-outline" disabled>
+                                <i class="fas fa-download"></i> 导出报告
+                            </button>
+                            <button id="copyBtn" class="btn-outline" disabled>
+                                <i class="fas fa-copy"></i> 复制结果
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="results-container">
+                        <!-- 状态显示 -->
+                        <div id="statusArea" class="status-area">
+                            <div class="status-message" id="statusMessage">
+                                <i class="fas fa-info-circle"></i>
+                                <p>请输入或上传Java代码进行分析</p>
+                            </div>
+                            <div id="loadingSpinner" class="loading-spinner hidden">
+                                <div class="spinner"></div>
+                                <p>正在分析代码，请稍候...</p>
+                            </div>
+                        </div>
+
+                        <!-- 摘要卡片 -->
+                        <div id="summaryCards" class="summary-cards hidden">
+                            <div class="summary-card severity-critical">
+                                <div class="summary-icon">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                </div>
+                                <div class="summary-content">
+                                    <h4>严重问题</h4>
+                                    <span id="criticalCount" class="summary-count">0</span>
+                                </div>
+                            </div>
+                            <div class="summary-card severity-high">
+                                <div class="summary-icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="summary-content">
+                                    <h4>高危问题</h4>
+                                    <span id="highCount" class="summary-count">0</span>
+                                </div>
+                            </div>
+                            <div class="summary-card severity-medium">
+                                <div class="summary-icon">
+                                    <i class="fas fa-info-circle"></i>
+                                </div>
+                                <div class="summary-content">
+                                    <h4>中危问题</h4>
+                                    <span id="mediumCount" class="summary-count">0</span>
+                                </div>
+                            </div>
+                            <div class="summary-card severity-low">
+                                <div class="summary-icon">
+                                    <i class="fas fa-lightbulb"></i>
+                                </div>
+                                <div class="summary-content">
+                                    <h4>优化建议</h4>
+                                    <span id="lowCount" class="summary-count">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 详细结果 -->
+                        <div id="resultsArea" class="results-area hidden">
+                            <div class="results-tabs">
+                                <button class="tab-btn active" data-tab="issues">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    问题列表
+                                </button>
+                                <button class="tab-btn" data-tab="code">
+                                    <i class="fas fa-code"></i>
+                                    代码视图
+                                </button>
+                                <button class="tab-btn" data-tab="suggestions">
+                                    <i class="fas fa-magic"></i>
+                                    修复建议
+                                </button>
+                                <button class="tab-btn" data-tab="metrics">
+                                    <i class="fas fa-chart-line"></i>
+                                    代码度量
+                                </button>
+                            </div>
+
+                            <div class="tab-content">
+                                <!-- 问题列表 -->
+                                <div id="tab-issues" class="tab-pane active">
+                                    <div class="issues-list" id="issuesList"></div>
+                                </div>
+
+                                <!-- 代码视图 -->
+                                <div id="tab-code" class="tab-pane">
+                                    <div class="code-viewer">
+                                        <pre><code id="codeViewer" class="java"></code></pre>
+                                    </div>
+                                </div>
+
+                                <!-- 修复建议 -->
+                                <div id="tab-suggestions" class="tab-pane">
+                                    <div class="suggestions-list" id="suggestionsList"></div>
+                                </div>
+
+                                <!-- 代码度量 -->
+                                <div id="tab-metrics" class="tab-pane">
+                                    <div class="metrics-grid">
+                                        <div class="metric-card">
+                                            <div class="metric-value" id="metricComplexity">0</div>
+                                            <div class="metric-label">圈复杂度</div>
+                                            <div class="metric-bar">
+                                                <div class="metric-fill" style="width: 0%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="metric-card">
+                                            <div class="metric-value" id="metricLines">0</div>
+                                            <div class="metric-label">代码行数</div>
+                                            <div class="metric-bar">
+                                                <div class="metric-fill" style="width: 0%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="metric-card">
+                                            <div class="metric-value" id="metricMaintainability">0</div>
+                                            <div class="metric-label">可维护性</div>
+                                            <div class="metric-bar">
+                                                <div class="metric-fill" style="width: 0%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="metric-card">
+                                            <div class="metric-value" id="metricSecurity">0%</div>
+                                            <div class="metric-label">安全评分</div>
+                                            <div class="metric-bar">
+                                                <div class="metric-fill" style="width: 0%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 系统信息 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-info-circle"></i> 系统信息</h3>
+                    </div>
+                    <div class="system-info">
+                        <div class="info-item">
+                            <span class="info-label">AI模型：</span>
+                            <span class="info-value">DeepSeek-Coder</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">支持语言：</span>
+                            <span class="info-value">Java 8+</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">分析类型：</span>
+                            <span class="info-value">静态分析、安全扫描、性能检测</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">API状态：</span>
+                            <span id="apiStatus" class="status-indicator">
+                                <span class="status-dot"></span>
+                                <span>检查中...</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <div class="footer-content">
+                <p>© 2024 Java代码缺陷检测工具 | 基于DeepSeek AI | 仅供学习使用</p>
+                <div class="footer-links">
+                    <a href="#" id="privacyBtn">隐私政策</a>
+                    <a href="#" id="aboutBtn">关于我们</a>
+                    <a href="https://github.com" target="_blank">GitHub</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 模态框 -->
+    <div id="sampleModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>选择示例代码</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="sample-list">
+                    <button class="sample-item" data-sample="vulnerable">
+                        <h4><i class="fas fa-shield-alt"></i> 安全漏洞示例</h4>
+                        <p>SQL注入、命令注入、硬编码密码</p>
+                    </button>
+                    <button class="sample-item" data-sample="performance">
+                        <h4><i class="fas fa-tachometer-alt"></i> 性能问题示例</h4>
+                        <p>循环内创建对象、字符串拼接效率</p>
+                    </button>
+                    <button class="sample-item" data-sample="buggy">
+                        <h4><i class="fas fa-bug"></i> 常见Bug示例</h4>
+                        <p>空指针异常、资源未关闭、并发问题</p>
+                    </button>
+                    <button class="sample-item" data-sample="style">
+                        <h4><i class="fas fa-paint-brush"></i> 代码规范示例</h4>
+                        <p>命名规范、代码重复、复杂度过高</p>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 脚本 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
