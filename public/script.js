@@ -400,6 +400,76 @@ async function analyzeCode() {
     } finally {
         showLoading(false);
     }
+
+      try {
+    const response = await fetch(`${API_BASE_URL}/analyze`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        code: code,
+        options: options,
+        fileName: currentFile ? currentFile.name : 'Unnamed.java'
+      }),
+      // 增加超时时间
+      signal: AbortSignal.timeout(60000) // 60秒超时
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP错误: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      displayResults(result.data);
+      saveToHistory(code, result.data);
+    } else {
+      throw new Error(result.error || '分析失败');
+    }
+    
+  } catch (error) {
+    console.error('分析失败:', error);
+    
+    // 显示详细的错误信息
+    if (error.name === 'AbortError') {
+      showError('请求超时，请稍后重试');
+    } else if (error.message.includes('API密钥') || error.message.includes('权限')) {
+      showError('API配置错误: ' + error.message);
+    } else if (error.message.includes('网络') || error.message.includes('连接')) {
+      showError('网络错误，请检查连接后重试');
+    } else {
+      showError('分析失败: ' + error.message);
+    }
+  } finally {
+    showLoading(false);
+  }
+}
+// 添加API状态检查函数
+async function checkAPIDetailedStatus() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/health`);
+    const data = await response.json();
+    
+    const statusElement = document.getElementById('apiStatus');
+    const statusText = statusElement.querySelector('span:last-child');
+    
+    if (data.api_key_configured) {
+      statusElement.innerHTML = '<span class="status-dot online"></span><span>API在线</span>';
+    } else {
+      statusElement.innerHTML = `<span class="status-dot offline"></span><span>API未配置: ${data.message}</span>`;
+    }
+    
+    // 在控制台显示详细信息
+    console.log('API状态:', data);
+    
+  } catch (error) {
+    console.error('API状态检查失败:', error);
+    document.getElementById('apiStatus').innerHTML = 
+      '<span class="status-dot offline"></span><span>无法连接到服务器</span>';
+  }
 }
 
 // 显示加载状态
